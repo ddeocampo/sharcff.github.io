@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ESPN Fantasy Football Dashboard</title>
+    <style>
+        body { 
+            background-color: #121212; 
+            color: white; 
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; 
+            padding: 20px; 
+            margin: 0;
+        }
+        h1 { 
+            text-align: center; 
+            color: #ff9100; 
+            margin-bottom: 5px;
+            font-size: 2.5rem;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+        #status {
+            text-align: center;
+            color: #888;
+            font-size: 0.9rem;
+            margin-bottom: 30px;
+        }
+        .grid { 
+            display: grid; 
+            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); 
+            gap: 20px; 
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        .card { 
+            background: #1e1e1e; 
+            padding: 24px; 
+            border-radius: 12px; 
+            border: 1px solid #333; 
+            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+        }
+        .team-row { 
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center;
+            margin: 12px 0; 
+            font-size: 22px; 
+        }
+        .team-name {
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            max-width: 75%;
+        }
+        .score { 
+            font-weight: bold; 
+            color: #00e676; 
+            font-variant-numeric: tabular-nums;
+        }
+        .vs {
+            text-align: center;
+            color: #555;
+            font-size: 0.8rem;
+            font-weight: bold;
+            margin: -5px 0;
+            text-transform: uppercase;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>🏆 League Live Scoreboard 🏆</h1>
+    <div id="status">Loading live scores...</div>
+    
+    <div class="grid" id="scoreboard-grid"></div>
+
+    <script>
+        // --- CONFIGURATION ---
+        const LEAGUE_ID = 1822650876; // Replace with your ESPN League ID
+        const SEASON = 2026;       // Current season year
+        const SWID = "{BE879A08-8AD0-4DFD-85D2-FF89AA8F263F}"; // Include the curly brackets
+        const ESPN_S2 = "AECAQv6HGXHPNrkslHDlcQ3gtVevyXpVb434I294fc%2Bvo3%2B0pNs5JtLLV2tP641G39EoRs5qa9YrEw3KCX2itS%2FlPrvklv0fZU%2F%2BCTeaC6f1dfCvNsXivRnxds7M6ut9iMwFGQhFt8KnbZI9fKZD2mqXTrQ1cnLl4uJGd%2BmVlVlPtJ4eWVab9yuZ2isOASUZDtYfdS5DWwPLmIwFTRzIj59AhSb4E5OXb24%2FnvBVh%2FePbp2cTqwpErCCy0fVjDbhC1eQth4S0SSPPjXo%2FtE0s98nYxWOVJ%2FsEh3yRGB2fZaqlA%3D%3D";
+        // ---------------------
+
+        async function fetchScoreboard() {
+            // ESPN API URL for live boxscores
+            const url = `https://espn.com{SEASON}/segments/0/leagues/${LEAGUE_ID}?view=mBoxscore&view=mMatchupScore`;
+            
+            try {
+                // Fetch data using your cookie credentials to authenticate private league access
+                const response = await fetch(url, {
+                    headers: {
+                        'Cookie': `SWID=${SWID}; espn_s2=${ESPN_S2};`
+                    }
+                });
+                
+                if (!response.ok) throw new Error('Network response was not ok');
+                
+                const data = await response.json();
+                const schedule = data.schedule || [];
+                const teams = data.teams || [];
+                const currentMatchupPeriod = data.status.currentMatchupPeriod;
+                
+                // Map team IDs to team names for quick lookup
+                const teamMap = {};
+                teams.forEach(t => {
+                    teamMap[t.id] = `${t.location} ${t.nickname}`;
+                });
+
+                // Filter schedule to only include games for the current active week
+                const activeMatchups = schedule.filter(matchup => matchup.matchupPeriodId === currentMatchupPeriod);
+                
+                const grid = document.getElementById('scoreboard-grid');
+                grid.innerHTML = ''; // Clear previous frame
+
+                activeMatchups.forEach(matchup => {
+                    const homeName = teamMap[matchup.home.teamId] || "Home Team";
+                    const homeScore = (matchup.home.totalPoints).toFixed(1);
+                    
+                    const awayName = teamMap[matchup.away.teamId] || "Away Team";
+                    const awayScore = (matchup.away.totalPoints).toFixed(1);
+
+                    const card = document.createElement('div');
+                    card.className = 'card';
+                    card.innerHTML = `
+                        <div class="team-row">
+                            <span class="team-name">${homeName}</span>
+                            <span class="score">${homeScore}</span>
+                        </div>
+                        <div class="vs">vs</div>
+                        <div class="team-row">
+                            <span class="team-name">${awayName}</span>
+                            <span class="score">${awayScore}</span>
+                        </div>
+                    `;
+                    grid.appendChild(card);
+                });
+
+                const now = new Date();
+                document.getElementById('status').innerText = `Live Updates Enabled • Last updated at ${now.toLocaleTimeString()}`;
+
+            } catch (error) {
+                console.error('Error fetching ESPN data:', error);
+                document.getElementById('status').innerText = 'Error loading scores. Check your Console/Credentials.';
+            }
+        }
+
+        // Run immediately on load
+        fetchScoreboard();
+        
+        // Auto-refresh scores every 30 seconds
+        setInterval(fetchScoreboard, 30000);
+    </script>
+</body>
+</html>
