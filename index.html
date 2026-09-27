@@ -85,7 +85,10 @@
 
         async function fetchScoreboard() {
             // ESPN API URL for live boxscores
-            const url = `https://espn.com{SEASON}/segments/0/leagues/${LEAGUE_ID}?view=mBoxscore&view=mMatchupScore`;
+            // old const url = `https://espn.com{SEASON}/segments/0/leagues/${LEAGUE_ID}?view=mBoxscore&view=mMatchupScore`;
+            //  CORRECT URL
+            const url = `https://fantasy.espn.com/apis/v3/games/ffl/seasons/${SEASON}/segments/0/leagues/${LEAGUE_ID}?view=mBoxscore&view=mMatchupScore`;
+
             
             try {
                 // Fetch data using your cookie credentials to authenticate private league access
